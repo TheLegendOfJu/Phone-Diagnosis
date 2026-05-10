@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Phone Test</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+font-family: ‘DM Sans’, sans-serif;
+background: #111;
+color: #fff;
+min-height: 100vh;
+padding-bottom: 30px;
+}
+
+header {
+padding: 20px 16px 14px;
+font-size: 22px;
+font-weight: 700;
+letter-spacing: -0.5px;
+border-bottom: 1px solid #222;
+}
+header span { color: #0cf; }
+
+.grid {
+display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 10px;
+padding: 14px;
+}
+
+.btn {
+background: #1c1c1c;
+border: 1.5px solid #2a2a2a;
+border-radius: 16px;
+padding: 18px 12px 16px;
+cursor: pointer;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 8px;
+transition: background 0.15s, border-color 0.15s, transform 0.1s;
+-webkit-user-select: none;
+user-select: none;
+position: relative;
+overflow: hidden;
+}
+.btn:active { transform: scale(0.96); background: #252525; }
+.btn.pass { border-color: #00e676; background: rgba(0,230,118,0.08); }
+.btn.fail { border-color: #ff4444; background: rgba(255,68,68,0.08); }
+.btn.running { border-color: #0cf; background: rgba(0,204,255,0.08); }
+
+.btn-icon { font-size: 34px; line-height: 1; }
+.btn-name { font-size: 13px; font-weight: 700; text-align: center; }
+.btn-status {
+font-size: 11px;
+font-weight: 600;
+padding: 2px 8px;
+border-radius: 6px;
+background: #2a2a2a;
+color: #666;
+min-width: 60px;
+text-align: center;
+}
+.btn.pass .btn-status { background: rgba(0,230,118,0.15); color: #00e676; }
+.btn.fail .btn-status { background: rgba(255,68,68,0.15); color: #ff4444; }
+.btn.running .btn-status { background: rgba(0,204,255,0.15); color: #0cf; }
+
+/* FULLSCREEN OVERLAYS */
+.overlay {
+display: none;
+position: fixed;
+inset: 0;
+z-index: 999;
+flex-direction: column;
+align-items: center;
+justify-content: center;
+}
+.overlay.open { display: flex; }
+
+/* TOUCH OVERLAY */
+#ov-touch { background: #111; }
+#touch-area {
+width: 100%;
+flex: 1;
+position: relative;
+overflow: hidden;
+touch-action: none;
+}
+.t-dot {
+position: absolute;
+width: 52px; height: 52px;
+border-radius: 50%;
+background: #0cf;
+transform: translate(-50%,-50%);
+opacity: 0.85;
+animation: tdot 0.6s forwards;
+pointer-events: none;
+}
+@keyframes tdot { to { opacity:0; transform: translate(-50%,-50%) scale(1.6); } }
+.ov-bar {
+width: 100%;
+background: #1a1a1a;
+padding: 14px 16px;
+display: flex;
+align-items: center;
+justify-content: space-between;
+border-top: 1px solid #2a2a2a;
+}
+.ov-label { font-size: 14px; font-weight: 600; color: #aaa; }
+.ov-val { font-size: 14px; font-weight: 700; color: #0cf; }
+.close-btn {
+background: #ff4444;
+color: #fff;
+border: none;
+border-radius: 10px;
+padding: 10px 20px;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 14px;
+font-weight: 700;
+cursor: pointer;
+}
+
+/* COLOR OVERLAYS */
+#ov-color { cursor: pointer; }
+#color-bg { position: absolute; inset: 0; }
+#color-hint {
+position: relative;
+font-size: 15px;
+font-weight: 600;
+text-shadow: 0 1px 8px #0008;
+pointer-events: none;
+text-align: center;
+padding: 16px;
+}
+
+/* CAMERA OVERLAY */
+#ov-cam { background: #000; }
+#cam-vid { width: 100%; height: 100%; object-fit: cover; }
+#cam-bar {
+position: absolute;
+bottom: 0; left: 0; right: 0;
+padding: 16px;
+background: linear-gradient(transparent, #000c);
+display: flex;
+justify-content: flex-end;
+}
+
+/* MIC OVERLAY */
+#ov-mic { background: #111; gap: 0; }
+#mic-label { font-size: 18px; font-weight: 700; padding: 20px; }
+#mic-viz {
+display: flex;
+align-items: flex-end;
+gap: 5px;
+height: 120px;
+padding: 0 20px;
+width: 100%;
+}
+.mbar {
+flex: 1;
+background: #0cf;
+border-radius: 4px 4px 0 0;
+min-height: 6px;
+transition: height 0.07s;
+}
+#mic-bottom { padding: 24px 16px; width: 100%; }
+
+/* SENSOR OVERLAY */
+#ov-sensor { background: #111; }
+#sensor-content {
+width: 100%;
+flex: 1;
+overflow-y: auto;
+padding: 16px;
+}
+.sens-row {
+background: #1c1c1c;
+border-radius: 10px;
+padding: 14px;
+margin-bottom: 8px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+}
+.sens-name { font-size: 13px; color: #888; }
+.sens-val { font-size: 14px; font-weight: 700; color: #0cf; font-variant-numeric: tabular-nums; }
+
+/* VIBRATION PAGE */
+#ov-vib { background: #111; flex-direction: column; gap: 12px; padding: 24px 16px; justify-content: center; }
+.vib-btn {
+width: 100%;
+background: #1c1c1c;
+border: 1.5px solid #2a2a2a;
+border-radius: 14px;
+padding: 18px;
+color: #fff;
+font-family: ‘DM Sans’, sans-serif;
+font-size: 15px;
+font-weight: 700;
+cursor: pointer;
+text-align: center;
+transition: background 0.1s;
+}
+.vib-btn:active { background: #252525; transform: scale(0.97); }
+
+/* GYRO BALL */
+#ov-gyro { background: #111; }
+#gyro-content {
+flex: 1;
+width: 100%;
+position: relative;
+display: flex;
+align-items: center;
+justify-content: center;
+}
+#gyro-arena {
+width: 240px; height: 240px;
+background: #1c1c1c;
+border-radius: 50%;
+border: 2px solid #2a2a2a;
+position: relative;
+}
+#gyro-ball {
+width: 40px; height: 40px;
+border-radius: 50%;
+background: #0cf;
+box-shadow: 0 0 16px #0cf8;
+position: absolute;
+top: 50%; left: 50%;
+transform: translate(-50%,-50%);
+transition: top 0.12s, left 0.12s;
+}
+#gyro-vals { padding: 16px; text-align: center; color: #666; font-size: 13px; }
+
+/* FLASH OVERLAY */
+#ov-flash { background: #fff; cursor: pointer; }
+#flash-off { background: #111; }
+
+/* MULTITOUCH TEST */
+#mt-count {
+font-size: 72px;
+font-weight: 700;
+color: #0cf;
+pointer-events: none;
+}
+
+/* SCROLL OVERLAY (screen colors) */
+.color-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 700; }
+</style>
+
+</head>
+<body>
+
+<header>📱 Phone<span>Test</span></header>
+
+<div class="grid">
+  <div class="btn" id="btn-touch" onclick="openTouch()">
+    <div class="btn-icon">👆</div>
+    <div class="btn-name">Touch Test</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-multi" onclick="openMultiTouch()">
+    <div class="btn-icon">✋</div>
+    <div class="btn-name">Multi-Touch</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-color" onclick="openColor()">
+    <div class="btn-icon">🎨</div>
+    <div class="btn-name">Farb-Test</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-pixel" onclick="openDeadPixel()">
+    <div class="btn-icon">🟥</div>
+    <div class="btn-name">Tote Pixel</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-vib" onclick="openVib()">
+    <div class="btn-icon">📳</div>
+    <div class="btn-name">Vibration</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-cam" onclick="openCam()">
+    <div class="btn-icon">📷</div>
+    <div class="btn-name">Kamera</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-mic" onclick="openMic()">
+    <div class="btn-icon">🎤</div>
+    <div class="btn-name">Mikrofon</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-flash" onclick="openFlash()">
+    <div class="btn-icon">🔦</div>
+    <div class="btn-name">LED Blitz</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-gyro" onclick="openGyro()">
+    <div class="btn-icon">🌀</div>
+    <div class="btn-name">Gyroskop</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-sensor" onclick="openSensor()">
+    <div class="btn-icon">📡</div>
+    <div class="btn-name">Sensoren</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-audio" onclick="testAudio()">
+    <div class="btn-icon">🔊</div>
+    <div class="btn-name">Lautsprecher</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+
+  <div class="btn" id="btn-gps" onclick="testGPS()">
+    <div class="btn-icon">📍</div>
+    <div class="btn-name">GPS</div>
+    <div class="btn-status">Tippen</div>
+  </div>
+</div>
+
+<!-- ===== TOUCH OVERLAY ===== -->
+
+<div class="overlay" id="ov-touch">
+  <div id="touch-area">
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#333;pointer-events:none">
+      <div style="font-size:40px">👆</div>
+      <div style="font-size:14px;margin-top:8px">Wische hier rum</div>
+    </div>
+  </div>
+  <div class="ov-bar">
+    <div>
+      <div class="ov-label">Berührungen</div>
+      <div class="ov-val" id="touch-cnt">0</div>
+    </div>
+    <button class="close-btn" onclick="closeAll()">✕ Fertig</button>
+  </div>
+</div>
+
+<!-- ===== MULTI-TOUCH OVERLAY ===== -->
+
+<div class="overlay" id="ov-multi" style="background:#111;flex-direction:column;gap:0">
+  <div style="flex:1;width:100%;position:relative;display:flex;align-items:center;justify-content:center;touch-action:none" id="mt-area">
+    <div id="mt-count">0</div>
+    <div style="position:absolute;bottom:20px;font-size:13px;color:#444">Alle Finger gleichzeitig</div>
+  </div>
+  <div class="ov-bar">
+    <div>
+      <div class="ov-label">Max gleichzeitig</div>
+      <div class="ov-val" id="mt-max">0</div>
+    </div>
+    <button class="close-btn" onclick="closeAll()">✕ Fertig</button>
+  </div>
+</div>
+
+<!-- ===== COLOR OVERLAY ===== -->
+
+<div class="overlay" id="ov-color" onclick="nextColor()">
+  <div id="color-bg" style="background:#ff0000"></div>
+  <div id="color-hint" style="color:#fff8">Tippen zum Wechseln</div>
+  <div style="position:absolute;bottom:30px">
+    <button class="close-btn" onclick="event.stopPropagation();closeAll()">✕ Schließen</button>
+  </div>
+</div>
+
+<!-- ===== DEAD PIXEL OVERLAY ===== -->
+
+<div class="overlay" id="ov-pixel" onclick="nextPixel()">
+  <div id="pixel-bg" style="position:absolute;inset:0;background:#000"></div>
+  <div style="position:relative;color:#fff4;font-size:13px;pointer-events:none;bottom:-40vh">Tippe um Farbe zu wechseln</div>
+  <div style="position:absolute;bottom:30px">
+    <button class="close-btn" onclick="event.stopPropagation();closeAll()">✕ Schließen</button>
+  </div>
+</div>
+
+<!-- ===== VIBRATION OVERLAY ===== -->
+
+<div class="overlay" id="ov-vib">
+  <div style="font-size:20px;font-weight:700;margin-bottom:8px">📳 Vibration Test</div>
+  <div style="font-size:13px;color:#666;margin-bottom:20px">Spürst du es?</div>
+  <button class="vib-btn" onclick="doVib(100)">Kurz – 100ms</button>
+  <button class="vib-btn" onclick="doVib(300)">Mittel – 300ms</button>
+  <button class="vib-btn" onclick="doVib(800)">Lang – 800ms</button>
+  <button class="vib-btn" onclick="doVib([100,80,100,80,100])">Dreifach ···</button>
+  <button class="vib-btn" onclick="doVib([200,100,200,100,400])">SOS ···</button>
+  <div style="height:20px"></div>
+  <button class="close-btn" onclick="closeAll()">✕ Schließen</button>
+</div>
+
+<!-- ===== KAMERA OVERLAY ===== -->
+
+<div class="overlay" id="ov-cam">
+  <video id="cam-vid" autoplay muted playsinline></video>
+  <div id="cam-bar">
+    <button class="close-btn" onclick="closeCam()">✕ Stoppen</button>
+  </div>
+</div>
+
+<!-- ===== MIKROFON OVERLAY ===== -->
+
+<div class="overlay" id="ov-mic">
+  <div id="mic-label">🎤 Mikrofon Test</div>
+  <div style="font-size:13px;color:#555;margin-bottom:16px">Sprich oder klatsche</div>
+  <div id="mic-viz">
+    <div class="mbar" id="mb0"></div><div class="mbar" id="mb1"></div>
+    <div class="mbar" id="mb2"></div><div class="mbar" id="mb3"></div>
+    <div class="mbar" id="mb4"></div><div class="mbar" id="mb5"></div>
+    <div class="mbar" id="mb6"></div><div class="mbar" id="mb7"></div>
+    <div class="mbar" id="mb8"></div><div class="mbar" id="mb9"></div>
+    <div class="mbar" id="mb10"></div><div class="mbar" id="mb11"></div>
+    <div class="mbar" id="mb12"></div><div class="mbar" id="mb13"></div>
+    <div class="mbar" id="mb14"></div><div class="mbar" id="mb15"></div>
+  </div>
+  <div id="mic-bottom">
+    <button class="close-btn" style="width:100%;padding:14px" onclick="closeMic()">✕ Stoppen</button>
+  </div>
+</div>
+
+<!-- ===== LED BLITZ OVERLAY ===== -->
+
+<div class="overlay" id="ov-flash">
+  <div style="font-size:22px;font-weight:700;color:#111">💡 Schau auf die Kamera</div>
+  <div style="font-size:14px;color:#333;margin-top:8px">LED-Blitz sollte leuchten</div>
+  <div style="margin-top:30px">
+    <button class="close-btn" onclick="closeFlash()">✕ Ausschalten</button>
+  </div>
+</div>
+
+<!-- ===== GYRO OVERLAY ===== -->
+
+<div class="overlay" id="ov-gyro">
+  <div style="font-size:18px;font-weight:700;padding:20px">🌀 Gyroskop / Beschleunigung</div>
+  <div id="gyro-content">
+    <div id="gyro-arena"><div id="gyro-ball"></div></div>
+  </div>
+  <div id="gyro-vals">
+    <div>X: <b id="gx">—</b>  Y: <b id="gy">—</b>  Z: <b id="gz">—</b></div>
+    <div style="margin-top:4px">Neige dein Gerät</div>
+  </div>
+  <div style="padding:0 16px 24px;width:100%">
+    <button class="close-btn" style="width:100%;padding:14px" onclick="closeAll()">✕ Schließen</button>
+  </div>
+</div>
+
+<!-- ===== SENSOREN OVERLAY ===== -->
+
+<div class="overlay" id="ov-sensor" style="flex-direction:column">
+  <div style="font-size:18px;font-weight:700;padding:20px 16px 10px">📡 Gerät-Infos</div>
+  <div id="sensor-content"></div>
+  <div style="padding:0 16px 24px;width:100%">
+    <button class="close-btn" style="width:100%;padding:14px" onclick="closeAll()">✕ Schließen</button>
+  </div>
+</div>
+
+<script>
+// ===== HELPERS =====
+function setStatus(id, text, state) {
+  const btn = document.getElementById('btn-' + id);
+  btn.className = 'btn ' + state;
+  btn.querySelector('.btn-status').textContent = text;
+}
+function closeAll() {
+  document.querySelectorAll('.overlay').forEach(o => o.classList.remove('open'));
+  stopMic(); stopCam();
+}
+
+// ===== TOUCH TEST =====
+let touchCount = 0;
+function openTouch() {
+  touchCount = 0;
+  document.getElementById('touch-cnt').textContent = '0';
+  document.getElementById('ov-touch').classList.add('open');
+  setStatus('touch', 'Aktiv', 'running');
+  const area = document.getElementById('touch-area');
+  area.ontouchstart = area.ontouchmove = e => {
+    e.preventDefault();
+    for (let t of e.changedTouches) {
+      touchCount++;
+      document.getElementById('touch-cnt').textContent = touchCount;
+      const rect = area.getBoundingClientRect();
+      const d = document.createElement('div');
+      d.className = 't-dot';
+      d.style.left = (t.clientX - rect.left) + 'px';
+      d.style.top = (t.clientY - rect.top) + 'px';
+      area.appendChild(d);
+      setTimeout(() => d.remove(), 600);
+    }
+  };
+  area.onmousedown = e => {
+    touchCount++;
+    document.getElementById('touch-cnt').textContent = touchCount;
+    const rect = area.getBoundingClientRect();
+    const d = document.createElement('div');
+    d.className = 't-dot';
+    d.style.left = (e.clientX - rect.left) + 'px';
+    d.style.top = (e.clientY - rect.top) + 'px';
+    area.appendChild(d);
+    setTimeout(() => d.remove(), 600);
+  };
+}
+
+// ===== MULTI TOUCH =====
+let mtMax = 0;
+function openMultiTouch() {
+  mtMax = 0;
+  document.getElementById('mt-max').textContent = '0';
+  document.getElementById('mt-count').textContent = '0';
+  document.getElementById('ov-multi').classList.add('open');
+  setStatus('multi', 'Aktiv', 'running');
+  const area = document.getElementById('mt-area');
+  area.ontouchstart = area.ontouchmove = e => {
+    e.preventDefault();
+    const n = e.touches.length;
+    document.getElementById('mt-count').textContent = n;
+    if (n > mtMax) { mtMax = n; document.getElementById('mt-max').textContent = n; }
+  };
+  area.ontouchend = e => {
+    document.getElementById('mt-count').textContent = e.touches.length;
+  };
+}
+
+// ===== COLORS =====
+const colors = [
+  { bg: '#ff0000', label: 'ROT', light: false },
+  { bg: '#00cc44', label: 'GRÜN', light: false },
+  { bg: '#0066ff', label: 'BLAU', light: false },
+  { bg: '#ffffff', label: 'WEISS', light: true },
+  { bg: '#000000', label: 'SCHWARZ', light: false },
+  { bg: '#ffff00', label: 'GELB', light: true },
+  { bg: '#ff00ff', label: 'MAGENTA', light: false },
+  { bg: '#00ffff', label: 'CYAN', light: true },
+];
+let colorIdx = 0;
+function openColor() {
+  colorIdx = 0;
+  applyColor();
+  document.getElementById('ov-color').classList.add('open');
+  setStatus('color', 'Aktiv', 'running');
+}
+function applyColor() {
+  const c = colors[colorIdx];
+  document.getElementById('color-bg').style.background = c.bg;
+  document.getElementById('color-hint').style.color = c.light ? '#0008' : '#fff8';
+  document.getElementById('color-hint').textContent = c.label + ' – Tippe weiter';
+}
+function nextColor() {
+  colorIdx = (colorIdx + 1) % colors.length;
+  applyColor();
+  if (colorIdx === 0) { closeAll(); setStatus('color', '✓ OK', 'pass'); }
+}
+
+// ===== DEAD PIXEL =====
+const dpColors = ['#000000','#ffffff','#ff0000','#00ff00','#0000ff','#ff00ff'];
+let dpIdx = 0;
+function openDeadPixel() {
+  dpIdx = 0;
+  document.getElementById('pixel-bg').style.background = dpColors[0];
+  document.getElementById('ov-pixel').classList.add('open');
+  setStatus('pixel', 'Aktiv', 'running');
+}
+function nextPixel() {
+  dpIdx = (dpIdx + 1) % dpColors.length;
+  document.getElementById('pixel-bg').style.background = dpColors[dpIdx];
+  if (dpIdx === 0) { closeAll(); setStatus('pixel', '✓ OK', 'pass'); }
+}
+
+// ===== VIBRATION =====
+function openVib() {
+  if (!('vibrate' in navigator)) { setStatus('vib', '✗ N/V', 'fail'); return; }
+  document.getElementById('ov-vib').classList.add('open');
+  setStatus('vib', 'Aktiv', 'running');
+}
+function doVib(p) {
+  if ('vibrate' in navigator) navigator.vibrate(p);
+}
+
+// ===== KAMERA =====
+let camStream = null;
+async function openCam() {
+  setStatus('cam', '...', 'running');
+  try {
+    camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    document.getElementById('cam-vid').srcObject = camStream;
+    document.getElementById('ov-cam').classList.add('open');
+    setStatus('cam', '✓ OK', 'pass');
+  } catch(e) {
+    setStatus('cam', '✗ Fehler', 'fail');
+    alert('Kamera: ' + e.message);
+  }
+}
+function closeCam() {
+  stopCam();
+  document.getElementById('ov-cam').classList.remove('open');
+}
+function stopCam() {
+  if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; }
+}
+
+// ===== MIKROFON =====
+let micStream = null, micRaf = null, micCtx = null;
+async function openMic() {
+  setStatus('mic', '...', 'running');
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micCtx = new AudioContext();
+    const analyser = micCtx.createAnalyser();
+    analyser.fftSize = 64;
+    const src = micCtx.createMediaStreamSource(micStream);
+    src.connect(analyser);
+    const data = new Uint8Array(analyser.frequencyBinCount);
+    document.getElementById('ov-mic').classList.add('open');
+    setStatus('mic', '✓ OK', 'pass');
+    function draw() {
+      micRaf = requestAnimationFrame(draw);
+      analyser.getByteFrequencyData(data);
+      for (let i = 0; i < 16; i++) {
+        const h = Math.max(6, (data[i % data.length] / 255) * 110);
+        document.getElementById('mb' + i).style.height = h + 'px';
+      }
+    }
+    draw();
+  } catch(e) {
+    setStatus('mic', '✗ Fehler', 'fail');
+    alert('Mikrofon: ' + e.message);
+  }
+}
+function closeMic() {
+  stopMic();
+  document.getElementById('ov-mic').classList.remove('open');
+}
+function stopMic() {
+  if (micRaf) { cancelAnimationFrame(micRaf); micRaf = null; }
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (micCtx) { micCtx.close(); micCtx = null; }
+  for (let i = 0; i < 16; i++) { const b = document.getElementById('mb' + i); if(b) b.style.height = '6px'; }
+}
+
+// ===== LED BLITZ =====
+let flashStream = null, flashTrack = null;
+async function openFlash() {
+  setStatus('flash', '...', 'running');
+  try {
+    flashStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    flashTrack = flashStream.getVideoTracks()[0];
+    const cap = flashTrack.getCapabilities();
+    if (cap.torch) {
+      await flashTrack.applyConstraints({ advanced: [{ torch: true }] });
+      document.getElementById('ov-flash').classList.add('open');
+      setStatus('flash', '✓ AN', 'pass');
+    } else {
+      // Show white screen as fallback
+      document.getElementById('ov-flash').style.background = '#fff';
+      document.getElementById('ov-flash').classList.add('open');
+      setStatus('flash', '⚠ Screen', 'pass');
+    }
+  } catch(e) {
+    // Fallback: full white screen
+    document.getElementById('ov-flash').style.background = '#fff';
+    document.getElementById('ov-flash').classList.add('open');
+    setStatus('flash', '⚠ Screen', 'pass');
+  }
+}
+function closeFlash() {
+  if (flashTrack) {
+    try { flashTrack.applyConstraints({ advanced: [{ torch: false }] }); } catch {}
+    flashStream && flashStream.getTracks().forEach(t => t.stop());
+    flashTrack = null; flashStream = null;
+  }
+  document.getElementById('ov-flash').style.background = '#fff';
+  document.getElementById('ov-flash').classList.remove('open');
+  setStatus('flash', '✓ OK', 'pass');
+}
+
+// ===== GYROSKOP =====
+function openGyro() {
+  document.getElementById('ov-gyro').classList.add('open');
+  setStatus('gyro', 'Aktiv', 'running');
+  if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+    DeviceOrientationEvent.requestPermission().then(r => { if (r === 'granted') listenGyro(); });
+  } else {
+    listenGyro();
+  }
+}
+function listenGyro() {
+  window.addEventListener('deviceorientation', e => {
+    if (!document.getElementById('ov-gyro').classList.contains('open')) return;
+    const b = e.beta || 0, g = e.gamma || 0;
+    document.getElementById('gx').textContent = (e.beta||0).toFixed(1)+'°';
+    document.getElementById('gy').textContent = (e.gamma||0).toFixed(1)+'°';
+    document.getElementById('gz').textContent = (e.alpha||0).toFixed(1)+'°';
+    const bv = Math.max(-60, Math.min(60, b));
+    const gv = Math.max(-60, Math.min(60, g));
+    const x = 50 + (gv / 60) * 42;
+    const y = 50 + (bv / 60) * 42;
+    document.getElementById('gyro-ball').style.left = x + '%';
+    document.getElementById('gyro-ball').style.top = y + '%';
+    setStatus('gyro', '✓ OK', 'pass');
+  });
+}
+
+// ===== SENSOREN =====
+function openSensor() {
+  const c = document.getElementById('sensor-content');
+  const ua = navigator.userAgent;
+  let browser = ua.includes('CriOS')||ua.includes('Chrome') ? 'Chrome' : ua.includes('Safari') ? 'Safari' : ua.includes('Firefox') ? 'Firefox' : 'Unbekannt';
+  const conn = navigator.connection || {};
+  const rows = [
+    ['📱 Bildschirm', screen.width + '×' + screen.height],
+    ['🔍 Pixel-Ratio', 'x' + (window.devicePixelRatio||1).toFixed(1)],
+    ['👆 Touch-Punkte', (navigator.maxTouchPoints||0) + ' Finger'],
+    ['🌐 Browser', browser],
+    ['🗣️ Sprache', navigator.language || '—'],
+    ['🍪 Cookies', navigator.cookieEnabled ? 'Ja' : 'Nein'],
+    ['📶 Netztyp', conn.effectiveType || conn.type || '—'],
+    ['⬇️ Downlink', conn.downlink ? conn.downlink + ' Mbps' : '—'],
+    ['⏱ RTT', conn.rtt ? conn.rtt + ' ms' : '—'],
+    ['🌙 Dark Mode', window.matchMedia('(prefers-color-scheme:dark)').matches ? 'Ja' : 'Nein'],
+    ['📺 HDR', window.matchMedia('(dynamic-range:high)').matches ? 'Ja' : 'Nein'],
+    ['💾 Speicher (RAM)', navigator.deviceMemory ? navigator.deviceMemory + ' GB' : '—'],
+    ['⚙️ CPU-Kerne', (navigator.hardwareConcurrency||'—') + ''],
+    ['🔋 Akku', '→ Wird geladen...'],
+  ];
+  c.innerHTML = rows.map(([n,v]) => `<div class="sens-row"><span class="sens-name">${n}</span><span class="sens-val">${v}</span></div>`).join('');
+  document.getElementById('ov-sensor').classList.add('open');
+  setStatus('sensor', '✓ OK', 'pass');
+  // Battery async
+  if (navigator.getBattery) {
+    navigator.getBattery().then(b => {
+      const battDiv = c.querySelectorAll('.sens-row');
+      battDiv[battDiv.length-1].querySelector('.sens-val').textContent =
+        Math.round(b.level*100) + '% ' + (b.charging ? '⚡' : '🔋');
+    });
+  }
+}
+
+// ===== LAUTSPRECHER =====
+function testAudio() {
+  setStatus('audio', '...', 'running');
+  try {
+    const ctx = new AudioContext();
+    const tones = [440, 880, 1320];
+    tones.forEach((f, i) => {
+      const osc = ctx.createOscillator();
+      const g = ctx.createGain();
+      osc.connect(g); g.connect(ctx.destination);
+      osc.frequency.value = f;
+      const t = ctx.currentTime + i * 0.3;
+      g.gain.setValueAtTime(0, t);
+      g.gain.linearRampToValueAtTime(0.3, t + 0.05);
+      g.gain.linearRampToValueAtTime(0, t + 0.25);
+      osc.start(t); osc.stop(t + 0.3);
+    });
+    setTimeout(() => setStatus('audio', '✓ OK', 'pass'), 1200);
+  } catch(e) {
+    setStatus('audio', '✗ Fehler', 'fail');
+  }
+}
+
+// ===== GPS =====
+function testGPS() {
+  if (!navigator.geolocation) { setStatus('gps', '✗ N/V', 'fail'); return; }
+  setStatus('gps', '...', 'running');
+  navigator.geolocation.getCurrentPosition(
+    pos => setStatus('gps', '✓ ' + pos.coords.accuracy.toFixed(0) + 'm', 'pass'),
+    err => setStatus('gps', '✗ ' + (err.code === 1 ? 'Zugriff' : 'Fehler'), 'fail'),
+    { timeout: 10000 }
+  );
+}
+</script>
+
+</body>
+</html>
